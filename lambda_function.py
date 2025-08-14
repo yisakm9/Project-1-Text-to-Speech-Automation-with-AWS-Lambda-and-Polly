@@ -2,11 +2,15 @@ import boto3
 import os
 import json
 import urllib.parse
+import logging
 
 s3 = boto3.client('s3')
 polly = boto3.client('polly')
 
 AUDIO_BUCKET = os.environ['AUDIO_BUCKET']
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 def synthesize_and_upload(text, output_key):
     """Convert text to audio using Polly and upload to AUDIO_BUCKET"""
@@ -23,11 +27,11 @@ def synthesize_and_upload(text, output_key):
 
     # Upload to audio bucket
     s3.upload_file(audio_file, AUDIO_BUCKET, output_key)
-    print(f"Uploaded audio to {AUDIO_BUCKET}/{output_key}")
+    logger.info(f"Uploaded audio to {AUDIO_BUCKET}/{output_key}")
     return output_key
 
 def lambda_handler(event, context):
-    print("Event:", json.dumps(event))
+    logger.info("Event: %s", json.dumps(event))
 
     # Case 1: Invoked by API Gateway
     if "body" in event:

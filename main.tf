@@ -1,5 +1,37 @@
+#####################################
+# Terraform Configuration 
+#####################################
+terraform {
+backend "s3" {
+    bucket         = "your-terraform-state-bucket"  # Change this to your S3 bucket for state
+    key            = "voicevault/terraform.tfstate"
+    region         = "ap-south-1"
+    use_lockfile = true                # Change this to your DynamoDB lock table name
+  }
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 6.0" # This now requires the latest 6.x version
+    }
+  }
+}
+
+# New variable for AWS region
+variable "aws_region" {
+  description = "AWS region"
+  type        = string
+  default     = "ap-south-1"
+}
+
 provider "aws" {
-  region = "ap-south-1"
+  region = var.aws_region
+}
+
+variable "lambda_function_name" {
+  description = "The name of the Lambda function"
+  type        = string
+  default     = "voicevault-processor"
 }
 
 resource "random_id" "suffix" {
@@ -38,7 +70,12 @@ resource "aws_iam_role_policy" "lambda_policy" {
       {
         Effect   = "Allow",
         Action   = ["s3:GetObject", "s3:PutObject"],
-        Resource = "*"
+        Resource = [
+          aws_s3_bucket.notes.arn,
+          "${aws_s3_bucket.notes.arn}/*",
+          aws_s3_bucket.audio.arn,
+          "${aws_s3_bucket.audio.arn}/*"
+        ]
       },
       {
         Effect   = "Allow",
@@ -47,8 +84,8 @@ resource "aws_iam_role_policy" "lambda_policy" {
       },
       {
         Effect   = "Allow",
-        Action   = ["logs:*"],
-        Resource = "*"
+        Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
+        Resource = "arn:aws:logs:*:*:*"
       }
     ]
   })
@@ -57,12 +94,12 @@ resource "aws_iam_role_policy" "lambda_policy" {
 # Package Lambda locally: zip lambda_function.py into lambda_function.zip
 
 resource "aws_lambda_function" "voicevault" {
-  function_name    = "voicevault-processor"
+  function_name    = var.lambda_function_name
   role             = aws_iam_role.lambda_role.arn
   handler          = "lambda_function.lambda_handler"
-  runtime          = "python3.9"
-  filename         = "lambda/lambda_function.zip"
-  source_code_hash = filebase64sha256("lambda/lambda_function.zip")
+  runtime          = "python3.11"
+  filename         = "lambda_function.zip"
+  source_code_hash = filebase64sha256("lambda_function.zip")
 
   environment {
     variables = {
@@ -81,7 +118,6 @@ resource "aws_s3_bucket_notification" "notes_notification" {
   }
 
   depends_on = [
-    aws_lambda_function.voicevault,
     aws_lambda_permission.allow_s3
   ]
 }
@@ -120,6 +156,7 @@ resource "aws_lambda_permission" "allow_apigw" {
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.api.execution_arn}/*/*"
 }
+
 output "notes_bucket" {
   value = aws_s3_bucket.notes.bucket
 }
