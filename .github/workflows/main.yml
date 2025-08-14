@@ -1,7 +1,6 @@
 name: CI/CD for Lambda TTS with Terraform
 
-on:
-  push:
+
     branches:
       - main
   workflow_dispatch:
