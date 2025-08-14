@@ -6,7 +6,7 @@ backend "s3" {
     bucket         = "your-terraform-state-bucket"  # Change this to your S3 bucket for state
     key            = "voicevault/terraform.tfstate"
     region         = "ap-south-1"
-    use_lockfile = true                # Change this to your DynamoDB lock table name
+    Ddynamodb_table =  true                # Change this to your DynamoDB lock table name
   }
 
   required_providers {
