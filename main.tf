@@ -3,7 +3,7 @@
 #####################################
 terraform {
 backend "s3" {
-    bucket         = "your-terraform-state-bucket"  # Change this to your S3 bucket for state
+    bucket         = "ysak-terraform-state-bucket"  # Change this to your S3 bucket for state
     key            = "voicevault/terraform.tfstate"
     region         = "ap-south-1"
     dynamodb_table =  true                # Change this to your DynamoDB lock table name
@@ -12,7 +12,7 @@ backend "s3" {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 6.0" # This now requires the latest 6.x version
+      version = "~> 6.0" # requires the latest 6.x version
     }
   }
 }

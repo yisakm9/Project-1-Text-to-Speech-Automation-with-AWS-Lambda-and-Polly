@@ -1,0 +1,48 @@
+name: CI Checks
+on:
+  pull_request:
+    branches:
+      - develop
+      - staging
+      - main
+
+jobs:
+  python-tests:
+    name: Run Python Linter and Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r lambda/requirements.txt
+
+      - name: Lint with Pylint
+        run: pylint lambda/lambda_function.py
+
+      - name: Run Unit Tests
+        run: pytest tests/
+
+  terraform-scan:
+    name: Run Terraform Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Run Terraform Fmt
+        run: terraform fmt -check -recursive
+        working-directory: ./terraform
+
+      - name: Run TFSec for security scanning
+        uses: aquasecurity/tfsec-action@v1.0.0
+        with:
+          working_directory: ./terraform
