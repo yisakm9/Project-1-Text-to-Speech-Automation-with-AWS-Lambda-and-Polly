@@ -3,7 +3,7 @@ terraform {
     bucket         = "ysak-terraform-state-bucket"
     key            = "voicevault/terraform.tfstate"
     region         = "us-east-1"
-    dynamodb_table = "ysak-terraform-lock-table"
+    use_lockfile = "ysak-terraform-lock-table"
   }
 
   required_providers {
