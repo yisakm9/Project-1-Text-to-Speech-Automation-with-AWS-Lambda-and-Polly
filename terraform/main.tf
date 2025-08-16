@@ -5,7 +5,7 @@ backend "s3" {
     bucket         = "ysak-terraform-state-bucket"  
     key            = "voicevault/terraform.tfstate"
     region         = "us-east-1"
-    dynamodb_table =  true                
+    dynamodb_table =  "ysak-terraform-lock-table"                
   }
 
   required_providers {
