@@ -5,7 +5,7 @@ terraform {
 backend "s3" {
     bucket         = "ysak-terraform-state-bucket"  # Change this to your S3 bucket for state
     key            = "voicevault/terraform.tfstate"
-    region         = "ap-south-1"
+    region         = "us-east-1"
     dynamodb_table =  true                # Change this to your DynamoDB lock table name
   }
 
@@ -21,7 +21,7 @@ backend "s3" {
 variable "aws_region" {
   description = "AWS region"
   type        = string
-  default     = "ap-south-1"
+  default     = "us-east-1"  # Change this to your preferred AWS region
 }
 
 provider "aws" {
