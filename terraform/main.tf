@@ -1,5 +1,3 @@
-
-
 terraform {
   backend "s3" {
     bucket         = "ysak-terraform-state-bucket"
@@ -16,42 +14,11 @@ terraform {
   }
 }
 
-# 1. Create the S3 bucket to store the Terraform state file for the main application
-resource "aws_s3_bucket" "terraform_state" {
-  bucket = "ysak-terraform-state-bucket" # Use the exact bucket name you need
-
-  # Prevent accidental deletion of the state file
-  lifecycle {
-    prevent_destroy = true
-  }
-}
-
-# Enable versioning to keep a history of your state files
-resource "aws_s3_bucket_versioning" "versioning_example" {
-  bucket = aws_s3_bucket.terraform_state.id
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-
-# 2. Create the DynamoDB table for state locking
-resource "aws_dynamodb_table" "terraform_locks" {
-  # Use the exact table name from your main application's backend config
-  name         = "ysak-terraform-lock-table"
-  billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "LockID"
-
-  attribute {
-    name = "LockID"
-    type = "S"
-  }
-}
-
 # New variable for AWS region
 variable "aws_region" {
   description = "AWS region"
   type        = string
-  default     = "us-east-1"  
+  default     = "us-east-1"
 }
 
 provider "aws" {
@@ -68,7 +35,7 @@ resource "random_id" "suffix" {
   byte_length = 4
 }
 
-# Buckets
+# Buckets for the application
 resource "aws_s3_bucket" "notes" {
   bucket = "voicevault-notes-${random_id.suffix.hex}"
 }
@@ -121,8 +88,7 @@ resource "aws_iam_role_policy" "lambda_policy" {
   })
 }
 
-# Package Lambda locally: zip lambda_function.py into lambda_function.zip
-
+# Lambda Function
 resource "aws_lambda_function" "voicevault" {
   function_name    = var.lambda_function_name
   role             = aws_iam_role.lambda_role.arn
