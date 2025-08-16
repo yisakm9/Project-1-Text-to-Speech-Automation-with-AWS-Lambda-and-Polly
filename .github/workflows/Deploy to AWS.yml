@@ -57,20 +57,16 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
-          aws-region: us-east-1  
+          aws-region: us-east-1
 
       - name: Download Lambda artifact
         uses: actions/download-artifact@v4
         with:
           name: lambda-package
 
-      - name: Unzip artifact for Terraform
-        run: |
-          unzip lambda_function.zip -d lambda_unzipped
-          # This hash is now stable and based on the contents, not a new zip
-          mv lambda_unzipped ../lambda/
-          # The source_code_hash in your TF file should point to this zip now
-          zip -r lambda/lambda_function.zip lambda/
+      # --- THIS IS THE CORRECTED STEP ---
+      - name: Move Lambda artifact for Terraform
+        run: mv lambda_function.zip ./terraform/
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
