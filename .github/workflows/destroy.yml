@@ -1,0 +1,56 @@
+name: Destroy AWS Infrastructure
+# This workflow is triggered manually from the GitHub Actions UI
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'The environment to destroy'
+        required: true
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+
+jobs:
+  destroy:
+    name: Destroy Infrastructure
+    runs-on: ubuntu-latest
+    
+    # Use GitHub Environments to ensure any protection rules are met
+    environment:
+      name: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+          aws-region: us-east-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Set environment variable for tfvars
+        run: |
+          if [[ "${{ inputs.environment }}" == "production" ]]; then
+            echo "TF_VARS_FILE=prod.tfvars" >> $GITHUB_ENV
+          elif [[ "${{ inputs.environment }}" == "staging" ]]; then
+            echo "TF_VARS_FILE=staging.tfvars" >> $GITHUB_ENV
+          else
+            echo "TF_VARS_FILE=dev.tfvars" >> $GITHUB_ENV
+          fi
+
+      - name: Terraform Init
+        id: init
+        run: terraform init
+        working-directory: ./terraform
+
+      - name: Terraform Destroy
+        id: destroy
+        run: terraform destroy -auto-approve -var-file=${{ env.TF_VARS_FILE }}
+        working-directory: ./terraform
