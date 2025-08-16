@@ -15,7 +15,7 @@ on:
           - production
 
 jobs:
-  # --- JOB 1: ADDED - This builds the Lambda artifact needed for the plan ---
+  # --- JOB 1: This builds the Lambda artifact needed for the plan ---
   build-lambda:
     name: Build Lambda Artifact
     runs-on: ubuntu-latest
@@ -31,7 +31,6 @@ jobs:
       - name: Create build directory
         run: |
           mkdir -p build
-          # We don't actually need the dependencies for a destroy, but this is good practice
           pip install --target build -r lambda/requirements.txt
           cp lambda/lambda_function.py build/
 
@@ -47,10 +46,10 @@ jobs:
           name: lambda-package-for-destroy
           path: lambda_function.zip
 
-  # --- JOB 2: MODIFIED - This job now depends on the build job ---
+  # --- JOB 2: This job now depends on the build job ---
   destroy:
     name: Destroy Infrastructure
-    # ADDED: This ensures the build job runs first
+    # This ensures the build job runs first
     needs: build-lambda
     runs-on: ubuntu-latest
     
@@ -68,7 +67,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
           aws-region: us-east-1
 
-      # --- ADDED: These two steps download and position the required zip file ---
+      # These two steps download and position the required zip file
       - name: Download Lambda artifact
         uses: actions/download-artifact@v4
         with:
