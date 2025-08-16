@@ -1,18 +1,17 @@
-#####################################
-# Terraform Configuration 
-#####################################
+
+
 terraform {
 backend "s3" {
-    bucket         = "ysak-terraform-state-bucket"  # Change this to your S3 bucket for state
+    bucket         = "ysak-terraform-state-bucket"  
     key            = "voicevault/terraform.tfstate"
     region         = "us-east-1"
-    dynamodb_table =  true                # Change this to your DynamoDB lock table name
+    dynamodb_table =  true                
   }
 
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 6.0" # requires the latest 6.x version
+      version = "~> 6.0" 
     }
   }
 }
@@ -21,7 +20,7 @@ backend "s3" {
 variable "aws_region" {
   description = "AWS region"
   type        = string
-  default     = "us-east-1"  # Change this to your preferred AWS region
+  default     = "us-east-1"  
 }
 
 provider "aws" {
