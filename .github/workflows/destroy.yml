@@ -1,5 +1,7 @@
+# .github/workflows/destroy.yml
+
 name: Destroy AWS Infrastructure
-# This workflow is triggered manually from the GitHub Actions UI
+
 on:
   workflow_dispatch:
     inputs:
@@ -13,11 +15,45 @@ on:
           - production
 
 jobs:
+  # --- JOB 1: ADDED - This builds the Lambda artifact needed for the plan ---
+  build-lambda:
+    name: Build Lambda Artifact
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Create build directory
+        run: |
+          mkdir -p build
+          # We don't actually need the dependencies for a destroy, but this is good practice
+          pip install --target build -r lambda/requirements.txt
+          cp lambda/lambda_function.py build/
+
+      - name: Zip artifact
+        run: |
+          cd build
+          zip -r ../lambda_function.zip .
+          cd ..
+
+      - name: Upload Lambda artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lambda-package-for-destroy
+          path: lambda_function.zip
+
+  # --- JOB 2: MODIFIED - This job now depends on the build job ---
   destroy:
     name: Destroy Infrastructure
+    # ADDED: This ensures the build job runs first
+    needs: build-lambda
     runs-on: ubuntu-latest
     
-    # Use GitHub Environments to ensure any protection rules are met
     environment:
       name: ${{ inputs.environment }}
 
@@ -31,6 +67,15 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
           aws-region: us-east-1
+
+      # --- ADDED: These two steps download and position the required zip file ---
+      - name: Download Lambda artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: lambda-package-for-destroy
+
+      - name: Move Lambda artifact for Terraform
+        run: mv lambda_function.zip ./terraform/
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
