@@ -1,0 +1,123 @@
+# VoiceVault: Serverless Audio Notes Generator
+
+VoiceVault is a serverless application that automatically converts text notes into audio files using AWS services. The application can be triggered in two ways: by uploading a text file to an S3 bucket or via an API endpoint.
+
+## Architecture
+
+The application is built on a serverless architecture using AWS and is deployed with Terraform.
+
+  * [cite\_start]**S3 (Simple Storage Service):** Two S3 buckets are used: one for storing the input text notes (`voicevault-notes-*`) and another for the generated audio files (`voicevault-audio-*`)[cite: 1].
+  * [cite\_start]**AWS Lambda:** A Python 3.11 Lambda function named `voicevault-processor` handles the core logic[cite: 1, 6]. [cite\_start]This function is responsible for reading the text, calling the Polly service, and uploading the resulting audio file to the S3 audio bucket[cite: 1].
+  * [cite\_start]**AWS Polly:** This service is used by the Lambda function to synthesize speech from the input text[cite: 1, 5]. [cite\_start]The Lambda's IAM role includes a policy that allows it to use the `polly:SynthesizeSpeech` action[cite: 5].
+  * [cite\_start]**IAM (Identity and Access Management):** An IAM role (`voicevault-lambda-role`) is created for the Lambda function, granting it the necessary permissions to interact with S3 and Polly[cite: 3, 4, 5]. [cite\_start]The policy allows the Lambda to get and put objects in the notes and audio buckets and to synthesize speech with Polly[cite: 4, 5].
+  * [cite\_start]**API Gateway:** An optional HTTP API Gateway is configured to provide a public-facing endpoint for triggering the Lambda function with a POST request[cite: 1, 8]. [cite\_start]The Lambda's permissions are configured to allow invocation from the API Gateway[cite: 1].
+  * [cite\_start]**S3 Bucket Notification:** The notes S3 bucket is configured to send a notification to the Lambda function whenever a new object is created (`s3:ObjectCreated:*`), serving as the event trigger for the Lambda[cite: 7].
+
+## Features
+
+  * [cite\_start]**S3-triggered conversion:** Simply upload a `.txt` file to the notes S3 bucket, and the Lambda function will automatically convert it to an `.mp3` audio file and store it in the audio bucket[cite: 1, 7].
+  * [cite\_start]**API-based conversion:** Send a JSON payload with a `text` field to the API Gateway endpoint to receive an audio file[cite: 1].
+  * [cite\_start]**Infrastructure as Code:** The entire infrastructure is defined and deployed using Terraform[cite: 1].
+  * **Continuous Integration/Continuous Deployment (CI/CD):**
+      * **CI Checks:** A GitHub Actions workflow runs on every pull request to lint the Python code with Pylint, run unit tests with Pytest, and perform security and formatting checks on the Terraform code using `terraform fmt` and `tfsec`.
+      * **Automated Deployment:** A separate GitHub Actions workflow automatically deploys the infrastructure to AWS when changes are pushed to `develop`, `staging`, or `main` branches. It builds the Lambda package, plans and applies the Terraform changes, and sets the API endpoint URL as an environment URL for easy access.
+      * **Manual Destroy:** A `workflow_dispatch` workflow is available to manually destroy the infrastructure for a specific environment (development, staging, or production).
+
+## Getting Started
+
+### Prerequisites
+
+  * [Terraform](https://www.terraform.io/downloads.html)
+  * [AWS CLI](https://aws.amazon.com/cli/)
+  * An AWS account configured with the necessary credentials.
+  * Python 3.11
+
+### Deployment
+
+1.  **Clone the repository:**
+
+    ```
+    git clone https://github.com/your-repo/voicevault.git
+    cd voicevault/terraform
+    ```
+
+2.  **Create Lambda deployment package:**
+    [cite\_start]The Terraform configuration requires a `lambda_function.zip` file[cite: 1].
+
+    ```
+    cd ..
+    # Install dependencies locally (optional, but good practice)
+    pip install -r lambda/requirements.txt --target build
+    cp lambda/lambda_function.py build/
+    cd build
+    zip -r ../lambda_function.zip .
+    cd ..
+    # Move the zip file to the terraform directory
+    mv lambda_function.zip terraform/
+    cd terraform
+    ```
+
+3.  **Initialize Terraform:**
+    [cite\_start]This command initializes the S3 backend and the required providers[cite: 1].
+
+    ```
+    terraform init
+    ```
+
+4.  **Create a `terraform.tfvars` file for your environment.**
+    Example for `dev.tfvars`:
+
+    ```hcl
+    # terraform/dev.tfvars
+    environment_tags = {
+      Environment = "Development"
+      ManagedBy   = "Terraform"
+    }
+    ```
+
+    [cite\_start]You can choose `dev.tfvars`, `staging.tfvars`, or `prod.tfvars`[cite: 9, 10, 14].
+
+5.  **Plan the deployment:**
+
+    ```
+    terraform plan -var-file="dev.tfvars"
+    ```
+
+6.  **Apply the changes:**
+
+    ```
+    terraform apply -var-file="dev.tfvars" -auto-approve
+    ```
+
+    This will provision all the necessary AWS resources. [cite\_start]The output will provide the S3 bucket names and the API endpoint URL[cite: 1].
+
+### Usage
+
+**1. Using the S3 Trigger:**
+
+  * Locate the notes bucket name from the Terraform output.
+  * Upload a `.txt` file containing your note to this bucket.
+  * The Lambda will be triggered, and the generated `.mp3` file will appear in the audio bucket.
+
+**2. Using the API Gateway Endpoint:**
+
+  * Locate the API endpoint URL from the Terraform output.
+  * Send a POST request to this endpoint with a JSON body containing the text to be synthesized.
+
+<!-- end list -->
+
+```json
+{
+  "text": "Hello, this is a test note from the API."
+}
+```
+
+## Testing
+
+Unit tests for the Lambda function are located in `test_lambda_function.py`. The tests use `pytest` and `moto` to mock AWS services, ensuring that the tests can be run without an active AWS connection.
+
+To run the tests, navigate to the root directory and execute:
+
+```
+pytest tests/
+```
