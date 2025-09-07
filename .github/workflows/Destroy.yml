@@ -23,51 +23,53 @@ jobs:
 
     # These environment variables are available to all steps in this job.
     env:
-      # Set the AWS region where resources exist.
       AWS_REGION: 'us-east-1'
-      # Set the working directory for Terraform commands.
       TF_WORKING_DIR: 'environments/dev'
-      # Define the required confirmation phrase for the safety check.
       CONFIRMATION_PHRASE: "destroy"
 
     # --- OIDC Permissions ---
-    # Grant the required permissions for the OIDC token exchange with AWS.
     permissions:
-      id-token: write   # Required for federated login to AWS.
-      contents: read    # Required to checkout the repository code.
+      id-token: write
+      contents: read
 
     steps:
       # 1. Checkout Repository
-      # Checks out your repository code so the job can access it.
       - name: Checkout Code
         uses: actions/checkout@v4
 
       # 2. Configure AWS Credentials
-      # Uses OIDC to securely authenticate with AWS without storing long-lived credentials.
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          # IMPORTANT: Use the same secret as your deploy workflow.
           role-to-assume: arn:aws:iam::456202167790:role/githubaction #  IAM ROLE ARN
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: GitHubActions-Terraform-Destroy
 
-      # 3. Setup Terraform
-      # Initializes the Terraform CLI for use in subsequent steps.
+      # 3. Setup Python <-- ADDED STEP
+      # Required to create the zip file for the source_code_hash calculation.
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      # 4. Package Lambda Function <-- ADDED STEP
+      # Creates the lambda_function.zip artifact so Terraform can read it.
+      - name: Create Lambda Deployment Package
+        run: |
+          cd src/lambda_function
+          zip -r ../../lambda_function.zip .
+
+      # 5. Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.13.1 # Use the same specific version as your deploy workflow.
+          terraform_version: 1.13.1 # Use a specific version for consistency.
 
-      # 4. Terraform Init
-      # Initializes the Terraform working directory to prepare for other commands.
+      # 6. Terraform Init
       - name: Terraform Init
-        id: init
         run: terraform -chdir="${{ env.TF_WORKING_DIR }}" init
 
-      # 5. Safety Check
-      # This critical step verifies the user's manual input.
-      # The workflow will fail here if the confirmation phrase is incorrect.
+      # 7. Safety Check
       - name: Verify Destroy Confirmation
         id: safety_check
         run: |
@@ -75,14 +77,11 @@ jobs:
             echo "✅ Confirmation phrase matches. Proceeding with destroy operation."
           else
             echo "❌ ERROR: Confirmation phrase does not match."
-            echo "Expected '${{ env.CONFIRMATION_PHRASE }}' but got '${{ github.event.inputs.confirmation }}'."
             echo "Aborting workflow."
             exit 1
           fi
 
-      # 6. Terraform Destroy
-      # This step runs ONLY if the safety check above was successful.
-      # It destroys all infrastructure managed by this Terraform state.
+      # 8. Terraform Destroy
       - name: Terraform Destroy
         id: destroy
         run: terraform -chdir="${{ env.TF_WORKING_DIR }}" destroy -auto-approve
