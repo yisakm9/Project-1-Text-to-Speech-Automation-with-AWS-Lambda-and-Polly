@@ -77,7 +77,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.8.0 # Use a specific version for consistency.
+          terraform_version: 1.13.1 # Use a specific version for consistency.
 
       # 6. Terraform Init
       # Initializes the Terraform working directory, downloading providers and modules.
