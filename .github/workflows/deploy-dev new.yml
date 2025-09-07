@@ -1,0 +1,108 @@
+# Name of the GitHub Actions workflow.
+name: 'Deploy to Dev Environment'
+
+# Controls when the workflow will run.
+on:
+  # Triggers the workflow on push events but only for the main branch.
+  push:
+    branches:
+      - main
+    paths:
+      - 'environments/dev/**'
+      - 'modules/**'
+      - 'src/**'
+      - '.github/workflows/deploy-dev.yml'
+
+  # Allows you to run this workflow manually from the Actions tab.
+  workflow_dispatch:
+
+# --- Security Best Practice ---
+# Set default permissions for the GITHUB_TOKEN to be read-only.
+# This prevents a compromised action from writing to the repository.
+permissions:
+  contents: read
+
+jobs:
+  # This workflow contains a single job called "deploy".
+  deploy:
+    name: 'Plan and Apply to Dev'
+    runs-on: ubuntu-latest
+    
+    # These environment variables are available to all steps in this job.
+    env:
+      # Set the AWS region where resources will be deployed.
+      AWS_REGION: 'us-east-1'
+      # Set the working directory for Terraform commands.
+      TF_WORKING_DIR: 'environments/dev'
+
+    # --- OIDC Permissions ---
+    # Grant the required permissions for the OIDC token exchange with AWS.
+    permissions:
+      id-token: write   # Required for federated login to AWS.
+      contents: read    # Required to checkout the repository code.
+
+    steps:
+      # 1. Checkout Repository
+      # Checks out your repository under $GITHUB_WORKSPACE, so your job can access it.
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Configure AWS Credentials
+      # Uses OIDC to securely authenticate with AWS without storing long-lived credentials.
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::456202167790:role/githubaction #  IAM ROLE ARN
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions-Terraform-Dev
+
+      # 3. Setup Python
+      # Sets up a Python environment for the Lambda packaging step.
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      # 4. Package Lambda Function
+      # Creates the lambda_function.zip artifact that Terraform will deploy.
+      - name: Create Lambda Deployment Package
+        run: |
+          cd src/lambda_function
+          # If you had dependencies in a requirements.txt, you would install them here:
+          # python -m pip install -r requirements.txt -t .
+          zip -r ../../lambda_function.zip .
+
+      # 5. Setup Terraform
+      # Initializes the Terraform CLI for use in subsequent steps.
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.0 # Use a specific version for consistency.
+
+      # 6. Terraform Init
+      # Initializes the Terraform working directory, downloading providers and modules.
+      - name: Terraform Init
+        id: init
+        run: terraform -chdir="${{ env.TF_WORKING_DIR }}" init
+
+      # 7. Terraform Format Check
+      # Ensures all Terraform code is properly formatted according to standards.
+      - name: Terraform Format
+        id: fmt
+        run: terraform -chdir="${{ env.TF_WORKING_DIR }}" fmt 
+
+      # 8. Terraform Plan
+      # Generates an execution plan for Terraform.
+      - name: Terraform Plan
+        id: plan
+        run: terraform -chdir="${{ env.TF_WORKING_DIR }}" plan -no-color -out=tfplan
+        # `-no-color` is used for cleaner output in logs.
+        # `-out=tfplan` saves the plan to a file for a secure and consistent apply.
+
+      # 9. Terraform Apply
+      # This step applies the changes defined in the tfplan file.
+      # The 'if' condition ensures this step ONLY runs on a push to the main branch,
+      # preventing accidental applies from feature branches or pull requests.
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform -chdir="${{ env.TF_WORKING_DIR }}" apply -auto-approve tfplan
