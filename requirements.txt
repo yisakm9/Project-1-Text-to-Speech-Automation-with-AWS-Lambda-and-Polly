@@ -1,0 +1,7 @@
+# AWS SDK for Python (included in Lambda runtime)
+boto3
+
+# ---- Testing Dependencies ----
+# These are only needed for running the unit tests, not for Lambda execution.
+pytest
+moto[s3,polly]
