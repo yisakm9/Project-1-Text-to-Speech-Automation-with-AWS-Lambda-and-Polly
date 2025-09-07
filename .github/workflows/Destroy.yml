@@ -1,0 +1,59 @@
+# .github/workflows/destroy.yml
+
+name: Destroy 
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Safety check. Type the word "destroy" to confirm.'
+        required: true
+        default: 'do-not-destroy'
+
+
+permissions:
+  id-token: write  # Required for OIDC to AWS
+  contents: read   # Required for the actions/checkout step
+
+jobs:
+  terraform-destroy:
+    name: 'Terraform Destroy'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./environments/dev
+    env:
+      AWS_REGION: "us-east-1"
+      CONFIRMATION_PHRASE: "destroy"
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::456202167790:role/githubaction # YOUR IAM ROLE ARN
+          aws-region: us-east-1
+
+            
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        
+      - name: Terraform Init
+        id: init
+        run: terraform init
+
+      - name: Safety Check
+        id: safety_check
+        run: |
+          if [ "${{ github.event.inputs.confirmation }}" == "${CONFIRMATION_PHRASE}" ]; then
+            echo "Confirmation matches. Proceeding with destroy."
+          else
+            echo "Error: Confirmation phrase does not match. Expected '${CONFIRMATION_PHRASE}' but got '${{ github.event.inputs.confirmation }}'."
+            exit 1
+          fi
+
+      - name: Terraform Destroy
+        id: destroy
+        run: terraform destroy -auto-approve
