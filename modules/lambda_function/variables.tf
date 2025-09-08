@@ -46,3 +46,8 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "source_code_directory" {
+  description = "The local directory path containing the Lambda function source code."
+  type        = string
+}
