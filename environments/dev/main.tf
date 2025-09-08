@@ -34,6 +34,7 @@ module "lambda" {
   source                      = "../../modules/lambda_function"
   function_name               = var.lambda_function_name
   source_code_directory       = "${path.root}/../../src/lambda_function"
+  zip_file_path               = "${path.root}/../../lambda_function.zip"
   lambda_role_arn             = module.iam.lambda_role_arn
   audio_bucket_id             = module.s3_buckets.audio_bucket_id
   source_s3_bucket_arn        = module.s3_buckets.notes_bucket_arn

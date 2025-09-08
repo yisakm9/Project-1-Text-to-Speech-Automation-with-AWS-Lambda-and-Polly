@@ -47,3 +47,8 @@ variable "source_code_directory" {
   description = "The local directory path containing the Lambda function source code."
   type        = string
 }
+
+variable "zip_file_path" {
+  description = "The path to the Lambda function's deployment package."
+  type        = string
+}

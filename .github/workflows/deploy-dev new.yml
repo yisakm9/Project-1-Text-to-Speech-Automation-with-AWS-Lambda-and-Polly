@@ -50,10 +50,10 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: GitHubActions-Terraform-Plan
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+      #- name: Setup Python
+      #  uses: actions/setup-python@v5
+      #  with:
+      #    python-version: '3.11'
       
       #- name: Create Lambda Deployment Package
       #  run: |
@@ -118,6 +118,13 @@ jobs:
           name: tfplan
           path: ${{ env.TF_WORKING_DIR }}/tfplan
 
+           #  UPLOADS THE ZIP ARTIFACT 
+      - name: Upload Lambda ZIP Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lambda-zip
+          path: ${{ env.TF_WORKING_DIR }}/lambda_function.zip
+
   # JOB 2: APPLY CHANGES
   terraform-apply:
     name: 'Terraform Apply'
@@ -140,10 +147,10 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: GitHubActions-Terraform-Apply
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+      #- name: Setup Python
+       # uses: actions/setup-python@v5
+       # with:
+        #  python-version: '3.11'
       
       #- name: Create Lambda Deployment Package
       #  run: |
@@ -155,12 +162,12 @@ jobs:
         with:
           terraform_version: 1.13.1
 
-      - name: Download Plan Artifact
+      #  DOWNLOAD THE ZIP ARTIFACT 
+      - name: Download Lambda ZIP Artifact
         uses: actions/download-artifact@v4
         with:
-          name: tfplan
+          name: lambda-zip
           path: ${{ env.TF_WORKING_DIR }}
-
       - name: Terraform Init
         run: terraform -chdir="${{ env.TF_WORKING_DIR }}" init
         
