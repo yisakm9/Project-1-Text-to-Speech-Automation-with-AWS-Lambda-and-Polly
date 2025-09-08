@@ -33,7 +33,8 @@ module "api_gateway" {
 module "lambda" {
   source                      = "../../modules/lambda_function"
   function_name               = var.lambda_function_name
-  zip_file_path               = "../../lambda_function.zip" # Adjust path as needed
+  source_code_directory       = "${path.root}/../../src/lambda_function"
+  zip_file_path               = "${path.root}/../../lambda_function.zip"
   lambda_role_arn             = module.iam.lambda_role_arn
   audio_bucket_id             = module.s3_buckets.audio_bucket_id
   source_s3_bucket_arn        = module.s3_buckets.notes_bucket_arn
@@ -41,8 +42,8 @@ module "lambda" {
   tags                        = var.environment_tags
 }
 
-# The S3 notification resource connects the S3 and Lambda modules,
-# so it is defined here in the root module to avoid circular dependencies.
+# The  S3 notification resource connects the S3 and Lambda modules,
+# so it is  defined here in the root module to avoid circular dependencies.
 resource "aws_s3_bucket_notification" "notes_notification" {
   bucket = module.s3_buckets.notes_bucket_id
 

@@ -16,10 +16,6 @@ variable "runtime" {
   default     = "python3.11"
 }
 
-variable "zip_file_path" {
-  description = "The path to the Lambda function's deployment package."
-  type        = string
-}
 
 variable "lambda_role_arn" {
   description = "The ARN of the IAM role for the Lambda function."
@@ -45,4 +41,14 @@ variable "tags" {
   description = "A map of tags to apply to the function."
   type        = map(string)
   default     = {}
+}
+
+variable "source_code_directory" {
+  description = "The local directory path containing the Lambda function source code."
+  type        = string
+}
+
+variable "zip_file_path" {
+  description = "The path to the Lambda function's deployment package."
+  type        = string
 }

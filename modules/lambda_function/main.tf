@@ -1,13 +1,18 @@
 # Deploys the Lambda function, setting its environment variables and role.
 # Also creates permissions to allow invocation from S3 and API Gateway.
+data "archive_file" "lambda_zip" {
+  type        = "zip"
+  source_dir  = var.source_code_directory
+  output_path = "${path.root}/lambda_function.zip" # Creates the zip in the root's temp dir
+}
 
 resource "aws_lambda_function" "voicevault" {
   function_name    = var.function_name
   role             = var.lambda_role_arn
   handler          = var.handler
   runtime          = var.runtime
-  filename         = var.zip_file_path
-  source_code_hash = filebase64sha256(var.zip_file_path)
+  filename         = data.archive_file.lambda_zip.output_path
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
 
   environment {
     variables = {
