@@ -1,0 +1,55 @@
+# AWS Text-to-Speech Automation with Terraform and CI/CD
+
+[![CI/CD Pipeline](https://github.com/your-username/your-repo/actions/workflows/deploy-dev.yml/badge.svg)](https://github.com/your-username/your-repo/actions/workflows/deploy-dev.yml)
+<!-- 
+  IMPORTANT: Replace the badge URL above with the correct path to your repository.
+  Go to your repo -> Actions -> 'Terraform CI/CD for Dev' -> ... -> Create status badge
+-->
+
+This project provides a fully automated, production-grade infrastructure for a text-to-speech conversion service using AWS Polly. The entire infrastructure is managed declaratively using a modular Terraform setup and deployed via a secure, multi-stage GitHub Actions CI/CD pipeline.
+
+## Project Overview
+
+The core application, "VoiceVault," converts text into natural-sounding speech. It can be triggered in two ways:
+1.  **S3 Trigger**: Uploading a `.txt` file to a designated S3 bucket automatically triggers a Lambda function to convert its content to an `.mp3` file.
+2.  **API Gateway Trigger**: Sending a JSON payload with text to a secure HTTP API endpoint invokes the same Lambda function to generate speech on demand.
+
+The resulting audio files are stored in a separate S3 bucket for secure access.
+
+## Core Features
+
+-   **Infrastructure as Code (IaC)**: The entire AWS infrastructure is defined using a clean, modular, and reusable Terraform structure.
+-   **Automated CI/CD Pipeline**: A comprehensive GitHub Actions workflow automates testing, validation, and deployment.
+-   **GitOps Workflow**:
+    -   **Plan on Pull Request**: Opening a PR automatically runs unit tests, lints, security scans, and generates a Terraform plan, which is posted as a PR comment for review.
+    -   **Apply on Merge**: Merging a PR to the `main` branch automatically applies the approved Terraform plan to the `dev` environment.
+-   **Security First**:
+    -   **OIDC Authentication**: Passwordless, secure authentication from GitHub Actions to AWS using OpenID Connect.
+    -   **Security Scanning**: `Checkov` is integrated into the pipeline to scan for infrastructure misconfigurations.
+    -   **Best Practices Linting**: `TFLint` is used to enforce Terraform best practices.
+-   **Robust Application Testing**: Python unit tests (`pytest` with `moto`) are run automatically in the pipeline to validate the Lambda function's logic before any infrastructure is deployed.
+-   **Safe Destruction**: A separate, manual-trigger workflow is available to destroy the environment, with a mandatory confirmation step to prevent accidents.
+
+## Architecture Diagram
+
+```mermaid
+flowchart TD
+    subgraph "Triggers"
+        A[User via API Call] --> AG[API Gateway];
+        B[User via S3 Upload] --> S3_Notes[S3 Notes Bucket];
+    end
+
+    subgraph "Processing"
+        AG --> L[Lambda Function];
+        S3_Notes -- S3 Event --> L;
+        L -- SynthesizeSpeech --> Polly[AWS Polly];
+    end
+
+    subgraph "Output"
+        Polly -- Audio Stream --> L;
+        L -- Writes MP3 --> S3_Audio[S3 Audio Bucket];
+    end
+
+    style L fill:#FF9900,stroke:#333,stroke-width:2px
+    style S3_Notes fill:#227D22,stroke:#333,stroke-width:2px
+    style S3_Audio fill:#227D22,stroke:#333,stroke-width:2px
