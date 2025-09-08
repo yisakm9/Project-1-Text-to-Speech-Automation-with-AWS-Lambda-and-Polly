@@ -41,7 +41,7 @@ module "lambda" {
   tags                        = var.environment_tags
 }
 
-# The S3 notification resource connects the S3 and Lambda modules,
+# The  S3 notification resource connects the S3 and Lambda modules,
 # so it is defined here in the root module to avoid circular dependencies.
 resource "aws_s3_bucket_notification" "notes_notification" {
   bucket = module.s3_buckets.notes_bucket_id
