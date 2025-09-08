@@ -50,15 +50,18 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: GitHubActions-Terraform-Plan
 
-      #- name: Setup Python
-      #  uses: actions/setup-python@v5
-      #  with:
-      #    python-version: '3.11'
+      #  TEST THE LAMBDA FUNCTION CODE 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
       
-      #- name: Create Lambda Deployment Package
-      #  run: |
-      #    cd src/lambda_function
-      #    zip -r ../../lambda_function.zip .
+      - name: Install Python Dependencies
+        run: pip install -r requirements.txt
+      
+      - name: Run Pytest Unit Tests
+        run: pytest test_lambda_function.py
+      
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -161,6 +164,13 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.13.1
+      
+      - name: Download Plan Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          # Tells the action to place the artifact directly into the TF working directory
+          path: ${{ env.TF_WORKING_DIR }}
 
       #  DOWNLOAD THE ZIP ARTIFACT ---
       - name: Download Lambda ZIP Artifact
