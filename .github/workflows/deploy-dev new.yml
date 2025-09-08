@@ -55,10 +55,10 @@ jobs:
         with:
           python-version: '3.11'
       
-      - name: Create Lambda Deployment Package
-        run: |
-          cd src/lambda_function
-          zip -r ../../lambda_function.zip .
+      #- name: Create Lambda Deployment Package
+      #  run: |
+      #    cd src/lambda_function
+      #    zip -r ../../lambda_function.zip .
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -145,10 +145,10 @@ jobs:
         with:
           python-version: '3.11'
       
-      - name: Create Lambda Deployment Package
-        run: |
-          cd src/lambda_function
-          zip -r ../../lambda_function.zip .
+      #- name: Create Lambda Deployment Package
+      #  run: |
+      #    cd src/lambda_function
+      #    zip -r ../../lambda_function.zip .
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
