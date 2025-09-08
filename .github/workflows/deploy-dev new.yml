@@ -162,7 +162,7 @@ jobs:
         with:
           terraform_version: 1.13.1
 
-      #  DOWNLOAD THE ZIP ARTIFACT 
+      #  DOWNLOAD THE ZIP ARTIFACT ---
       - name: Download Lambda ZIP Artifact
         uses: actions/download-artifact@v4
         with:
