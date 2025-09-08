@@ -33,7 +33,6 @@ module "api_gateway" {
 module "lambda" {
   source                      = "../../modules/lambda_function"
   function_name               = var.lambda_function_name
-  zip_file_path               = "${path.root}/../../src/lambda_function/lambda.zip"
   source_code_directory       = "${path.root}/../../src/lambda_function"
   lambda_role_arn             = module.iam.lambda_role_arn
   audio_bucket_id             = module.s3_buckets.audio_bucket_id
